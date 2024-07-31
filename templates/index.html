@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Bulk SMS Sender</title>
+</head>
+<body>
+    <h1>Bulk SMS Sender</h1>
+    <form id="api-form">
+        <label for="provider">Select API Provider:</label>
+        <select id="provider" name="provider">
+            <option value="twilio">Twilio</option>
+            <!-- Add other providers here -->
+        </select>
+        <br>
+        <label for="api_key">API Key:</label>
+        <input type="text" id="api_key" name="api_key" required>
+        <br>
+        <label for="api_secret">API Secret:</label>
+        <input type="text" id="api_secret" name="api_secret" required>
+        <br>
+        <label for="phone_number">My Twilio Phone Number:</label>
+        <input type="text" id="phone_number" name="phone_number" required>
+        <br>
+        <button type="button" onclick="getApiInfo()">Get API Info</button>
+    </form>
+    <div id="api-info" style="display: none;">
+        <h2>API Information</h2>
+        <p>Phone Number: <span id="api-phone-number"></span></p>
+        <p>Balance: <span id="api-balance"></span></p>
+    </div>
+    <form id="sms-form" style="display: none;">
+        <label for="targets">Target Numbers (comma separated):</label>
+        <input type="text" id="targets" name="targets" required>
+        <br>
+        <label for="message">SMS Message:</label>
+        <textarea id="message" name="message" required></textarea>
+        <br>
+        <button type="button" onclick="sendSms()">Send SMS</button>
+    </form>
+    <div id="output" style="display: none;">
+        <h2>Output</h2>
+        <div id="results"></div>
+    </div>
+    <script>
+        function getApiInfo() {
+            const formData = new FormData(document.getElementById('api-form'));
+            fetch('/api_info', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('api-phone-number').innerText = data.phone_number;
+                document.getElementById('api-balance').innerText = data.balance;
+                document.getElementById('api-info').style.display = 'block';
+                document.getElementById('sms-form').style.display = 'block';
+            });
+        }
+
+        function sendSms() {
+            const formData = new FormData(document.getElementById('sms-form'));
+            formData.append('provider', document.getElementById('provider').value);
+            formData.append('api_key', document.getElementById('api_key').value);
+            formData.append('api_secret', document.getElementById('api_secret').value);
+            formData.append('phone_number', document.getElementById('phone_number').value);
+            
+            fetch('/send_sms', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+                data.results.forEach(result => {
+                    const resultDiv = document.createElement('div');
+                    resultDiv.style.color = result.status === 'success' ? 'green' : 'red';
+                    resultDiv.innerText = `Target: ${result.target}, Status: ${result.status}, Log: ${result.log}`;
+                    resultsDiv.appendChild(resultDiv);
+                });
+                document.getElementById('output').style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
